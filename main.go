@@ -5,7 +5,6 @@ import (
 	"html/template"
 	"log"
 	"net/http"
-	"strconv"
 
 	"github.com/go-chi/chi/v5"
 	_ "github.com/mattn/go-sqlite3"
@@ -20,8 +19,9 @@ var db *gorm.DB
 
 type ShortURL struct {
 	gorm.Model
-	URL  string
-	SURL string
+	URL    string
+	SURL   string `gorm:"column:surl"`
+	Visits int
 }
 
 func main() {
@@ -39,13 +39,15 @@ func main() {
 		log.Fatal("error parsing home template", err)
 	}
 	r.Get("/", homeHandler)
+	r.Get("/{slug}", redirectHandler)
+	r.Get("/url/{slug}", getUrlHandler)
 	r.Post("/submit", submitHandler)
 	r.Get("/urls", URLsHandler)
 	r.Post("/delete", deleteHandler)
 
 	log.Println("running server on port :8080")
 	if err = http.ListenAndServe(":8080", r); err != nil {
-		log.Fatal("error running server")
+		log.Fatal("error running server: ", err)
 	}
 }
 
@@ -69,15 +71,27 @@ func submitHandler(w http.ResponseWriter, r *http.Request) {
 			http.Redirect(w, r, "/", http.StatusFound)
 			return
 		}
+
+
 		shortURLValue, err := shortid.Generate()
 		if err != nil {
 			log.Printf("Error generating random uuid: %v", err)
 			http.Error(w, "Failed to generate short url", http.StatusInternalServerError)
 			return
 		}
-		id := db.Create(&ShortURL{URL: urlValue, SURL: shortURLValue})
-		fmt.Println("Added url", id)
-		http.Redirect(w, r, "/urls", http.StatusMovedPermanently)
+		url := ShortURL{
+			URL:    urlValue,
+			SURL:   shortURLValue,
+			Visits: 0,
+		}
+		result := db.Create(&url)
+		if result.Error != nil {
+			log.Printf("Error creating short url: %v", result.Error)
+			http.Error(w, "Failed to create short url", http.StatusInternalServerError)
+			return
+		}
+		link := fmt.Sprintf("/url/%s", url.SURL)
+		http.Redirect(w, r, link, http.StatusMovedPermanently)
 		return
 	} else {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
@@ -98,10 +112,8 @@ func URLsHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	err = t.Execute(w, struct {
-		Host string
 		URLS []ShortURL
 	}{
-		Host: r.Host,
 		URLS: urls,
 	})
 	if err != nil {
@@ -123,18 +135,11 @@ func deleteHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "error parsing form data", http.StatusInternalServerError)
 		return
 	}
-	idStr := r.FormValue("id")
-	if idStr == "" {
+	id := r.FormValue("id")
+	if id == "" {
 		http.Error(w, "id can not be empty", http.StatusBadRequest)
 		return
 	}
-	// convert it to num
-	id, err := strconv.Atoi(idStr)
-	if err != nil {
-		http.Error(w, "error converting 'string id' to 'int id'", http.StatusInternalServerError)
-		return
-	}
-	// check if id exist
 	var url ShortURL
 	// Todo: check if we need to convert idStr to id
 	result := db.First(&url, id)
@@ -155,5 +160,52 @@ func deleteHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	// if not, show error
 	http.Error(w, "error deleteing url 2", http.StatusInternalServerError)
-	return
+}
+
+func redirectHandler(w http.ResponseWriter, r *http.Request) {
+	slug := chi.URLParam(r, "slug")
+	var url ShortURL
+	result := db.Where("surl = ?", slug).First(&url)
+	if result.Error != nil {
+		http.Error(w, fmt.Sprintf("error fetching short url: %v", result.Error), http.StatusNotFound)
+		return
+	}
+	// Increment number of visits
+	url.Visits++
+	db.Save(&url)
+	http.Redirect(w, r, "//"+url.URL, http.StatusFound)
+}
+
+func getUrlHandler(w http.ResponseWriter, r *http.Request) {
+	// we need to show, succees message if request is from post request
+	// if its a get request, show another message
+	slug := chi.URLParam(r, "slug")
+
+	var url ShortURL
+	// Check if url exist inside database
+	result := db.Where("surl = ?", slug).First(&url)
+	if result.Error != nil {
+		http.Error(w, "url not found", http.StatusNotFound)
+		return
+	}	
+	t, err := template.ParseFiles("pages/url.gohtml")
+	if err != nil {
+		log.Printf("error parsing template: %v", err)
+		http.Error(w, "", http.StatusInternalServerError)
+		return
+	}
+	err = t.Execute(w, struct{
+		Title string
+		Link string
+		URL ShortURL
+	}{
+		Title: "Copy this URL and share it with your friends!",
+		Link: r.Host + "/" + url.SURL,
+		URL: url,
+	})
+	if err != nil {
+		log.Printf("error executing template: %v", err)
+		http.Error(w, "", http.StatusInternalServerError)
+		return
+	}
 }
