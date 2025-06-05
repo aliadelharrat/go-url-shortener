@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/go-chi/chi/v5"
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/teris-io/shortid"
 	"gorm.io/driver/sqlite"
@@ -24,25 +25,27 @@ type ShortURL struct {
 }
 
 func main() {
+	r := chi.NewRouter()
+
 	db, err = gorm.Open(sqlite.Open("shorts.db"), &gorm.Config{})
 	if err != nil {
 		panic("failed to connect database")
 	}
 	db.AutoMigrate(&ShortURL{})
 
+	// TODO : Fix template parsing
 	temp, err = template.ParseFiles("pages/home.gohtml")
 	if err != nil {
 		log.Fatal("error parsing home template", err)
 	}
-	http.HandleFunc("/", homeHandler)
-	http.HandleFunc("/submit", submitHandler)
-	http.HandleFunc("/urls", URLsHandler)
-	http.HandleFunc("/delete", deleteHandler)
+	r.Get("/", homeHandler)
+	r.Post("/submit", submitHandler)
+	r.Get("/urls", URLsHandler)
+	r.Post("/delete", deleteHandler)
 
-	fmt.Println("Running server on port :8080")
-	err = http.ListenAndServe(":8080", nil)
-	if err != nil {
-		log.Fatal("Couldn't run server...")
+	log.Println("running server on port :8080")
+	if err = http.ListenAndServe(":8080", r); err != nil {
+		log.Fatal("error running server")
 	}
 }
 
@@ -60,6 +63,7 @@ func submitHandler(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "Error parsing form", http.StatusBadRequest)
 			return
 		}
+		// Todo: valide string if it valid url
 		urlValue := r.FormValue("url")
 		if urlValue == "" {
 			http.Redirect(w, r, "/", http.StatusFound)
