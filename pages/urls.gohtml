@@ -8,15 +8,16 @@
   </head>
   <body>
     <h1 class="text-3xl font-bold underline">List of shorten urls</h1>
+    {{ if .URLS }}
     <ul class="space-y-5 p-5">
-        {{ range . }}
+        {{ range .URLS }}
         <li>
             <div>
-                <h2>
-                    {{ .Shorten_url }}
-                </h2>
+                <a href="//{{ $.Host }}/{{ .SURL }}">
+                    {{ $.Host }}/{{ .SURL }}
+                </a>
                 <p>
-                    {{ .Original_url }}
+                    {{ .URL }}
                 </p>
                 <form action="/delete" method="post">
                     <input name="id" value="{{ .ID }}" type="hidden">
@@ -26,5 +27,8 @@
         </li>
         {{end}}
     </ul>
+    {{ else }}
+    <p>the url list is empty</p>
+    {{ end }}
   </body>
 </html>

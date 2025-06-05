@@ -1,58 +1,39 @@
 package main
 
 import (
-	"database/sql"
 	"fmt"
 	"html/template"
 	"log"
 	"net/http"
-	"os"
 	"strconv"
 
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/teris-io/shortid"
+	"gorm.io/driver/sqlite"
+	"gorm.io/gorm"
 )
 
 var temp *template.Template
 var err error
-var db *sql.DB
+var db *gorm.DB
 
-func initDB(filepath string) *sql.DB {
-	if _, err := os.Stat(filepath); os.IsNotExist(err) {
-		log.Printf("DATABASE file '%s' not found, creating it.", filepath)
-	}
-
-	database, err := sql.Open("sqlite3", filepath)
-	if err != nil {
-		log.Fatal("Error opening database: ", err)
-	}
-
-	createStatement := `
-	CREATE TABLE IF NOT EXISTS shorts (
-		id INTEGER PRIMARY KEY AUTOINCREMENT,
-		original_url TEXT NOT NULL,
-		shorten_url TEXT NOT NULL
-	);
-	`
-
-	_, err = database.Exec(createStatement)
-	if err != nil {
-		log.Fatal("Error creating table:", err)
-	}
-
-	log.Println("Database initialized and 'shorts' table ensured.")
-	return database
+type ShortURL struct {
+	gorm.Model
+	URL  string
+	SURL string
 }
 
 func main() {
+	db, err = gorm.Open(sqlite.Open("shorts.db"), &gorm.Config{})
+	if err != nil {
+		panic("failed to connect database")
+	}
+	db.AutoMigrate(&ShortURL{})
+
 	temp, err = template.ParseFiles("pages/home.gohtml")
 	if err != nil {
 		log.Fatal("error parsing home template", err)
 	}
-
-	db = initDB("./shorts.db")
-	defer db.Close()
-
 	http.HandleFunc("/", homeHandler)
 	http.HandleFunc("/submit", submitHandler)
 	http.HandleFunc("/urls", URLsHandler)
@@ -84,49 +65,26 @@ func submitHandler(w http.ResponseWriter, r *http.Request) {
 			http.Redirect(w, r, "/", http.StatusFound)
 			return
 		}
-		insertStatemet := `INSERT INTO shorts (original_url, shorten_url) VALUES (?,?)`
 		shortURLValue, err := shortid.Generate()
 		if err != nil {
 			log.Printf("Error generating random uuid: %v", err)
 			http.Error(w, "Failed to generate short url", http.StatusInternalServerError)
 			return
 		}
-		_, err = db.Exec(insertStatemet, urlValue, shortURLValue)
-		if err != nil {
-			log.Printf("Error inserting url: %v", err)
-			http.Error(w, "Failed to shorten and save url", http.StatusInternalServerError)
-			return
-		}
-		fmt.Println("Added url", urlValue)
-		http.Redirect(w, r, "/", http.StatusCreated)
+		id := db.Create(&ShortURL{URL: urlValue, SURL: shortURLValue})
+		fmt.Println("Added url", id)
+		http.Redirect(w, r, "/urls", http.StatusMovedPermanently)
+		return
 	} else {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 	}
 }
 
-type ShortURL struct {
-	ID           int
-	Original_url string
-	Shorten_url  string
-}
-
 func URLsHandler(w http.ResponseWriter, r *http.Request) {
-	readStatement := "SELECT * from shorts"
-	rows, err := db.Query(readStatement, nil)
-	if err != nil {
-		log.Fatal("error", err)
-	}
-	defer rows.Close()
 	var urls []ShortURL
-	for rows.Next() {
-		var current ShortURL
-		err := rows.Scan(&current.ID, &current.Original_url, &current.Shorten_url)
-		if err != nil {
-			log.Printf("Error scanning db row: %v", err)
-			http.Error(w, "Error processing database results", http.StatusInternalServerError)
-			return
-		}
-		urls = append(urls, current)
+	result := db.Find(&urls)
+	if result.Error != nil {
+		fmt.Fprint(w, "error fetching urls")
 	}
 
 	t, err := template.ParseFiles("pages/urls.gohtml")
@@ -135,7 +93,13 @@ func URLsHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "error parsing template urls.gohtml", http.StatusInternalServerError)
 		return
 	}
-	err = t.Execute(w, urls)
+	err = t.Execute(w, struct {
+		Host string
+		URLS []ShortURL
+	}{
+		Host: r.Host,
+		URLS: urls,
+	})
 	if err != nil {
 		fmt.Printf("error executing template urls.gohtml: %v", err)
 		http.Error(w, "error executing template urls.gohtml", http.StatusInternalServerError)
@@ -167,22 +131,25 @@ func deleteHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	// check if id exist
-	selectStatement := `select * from shorts where (id) = (?)`
-	rows, err := db.Query(selectStatement, id)
-	if err != nil {
-		http.Error(w, "error fetching urls", http.StatusInternalServerError)
+	var url ShortURL
+	// Todo: check if we need to convert idStr to id
+	result := db.First(&url, id)
+	if result.Error != nil {
+		http.Error(w, "error fetching url", http.StatusNotFound)
 		return
 	}
-	defer rows.Close()
-	for rows.Next() {
-		var row ShortURL
-		err := rows.Scan(&row.ID, &row.Original_url, &row.Shorten_url)
-		if err != nil {
-			http.Error(w, "error scanning row", http.StatusInternalServerError)
-			return
-		}
-	}
 	// delete
+	result = db.Delete(&ShortURL{}, id)
+	if result.Error != nil {
+		http.Error(w, "error deleting url", http.StatusInternalServerError)
+		return
+	}
 	// if ok, redirect back
+	if result.RowsAffected == 1 {
+		http.Redirect(w, r, "/urls", http.StatusMovedPermanently)
+		return
+	}
 	// if not, show error
+	http.Error(w, "error deleteing url 2", http.StatusInternalServerError)
+	return
 }
