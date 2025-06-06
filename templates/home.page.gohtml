@@ -1,0 +1,28 @@
+{{ template "base" . }}
+
+{{ define "content" }}
+<section class="bg-white max-w-2xl mx-auto p-10 rounded">
+  <h1 class="font-bold text-2xl text-center mb-10 text-neutral-600">
+    Type your long url below!
+  </h1>
+  <form method="post" action="/submit" class="flex items-center gap-5">
+    <div class="flex-1">
+      <input
+        class="focus:shadow w-full bg-neutral-100 px-6 py-3 rounded outline-none placeholder:text-gray-400"
+        name="url"
+        placeholder="https://www.example.com/this-is-a-very-long-url"
+        autocomplete="off"
+      />
+    </div>
+
+    <div>
+      <button
+        class="outline-none focus:shadow focus:bg-blue-400 hover:bg-blue-400 transition-colors ease-in-out duration-150 hover:shadow bg-blue-500 text-white px-6 py-3 rounded cursor-pointer font-bold"
+        type="submit"
+      >
+        Shorten
+      </button>
+    </div>
+  </form>
+</section>
+{{ end }}

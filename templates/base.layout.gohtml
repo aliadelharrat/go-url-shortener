@@ -1,0 +1,77 @@
+{{ define "base" }}
+<!doctype html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <title>URL Shortener</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      * {
+        font-family: "Inter", sans-serif;
+        font-optical-sizing: auto;
+      }
+    </style>
+  </head>
+  <body class="bg-neutral-100 flex flex-col min-h-screen">
+    <header class="bg-white h-14 mb-10">
+      <div class="grid grid-cols-3 w-full max-w-4xl mx-auto h-14 items-center">
+        <div>
+          <a class="text-2xl font-bold text-blue-500" href="/">GoShorts</a>
+        </div>
+        <ul class="flex justify-center">
+          <li>
+            <a href="/urls">My URLs</a>
+          </li>
+        </ul>
+        <div class="flex justify-end">
+          <a href="#">Login</a>
+        </div>
+      </div>
+    </header>
+
+    <main class="flex-1">
+      {{ template "content" . }}
+    </main>
+
+    <div
+      class="bg-white text-center text-xs text-neutral-600 border-t border-neutral-900/5 mt-20"
+    >
+      <div class="max-w-4xl mx-auto py-6 flex items-center justify-between">
+        <p>All rights are reserved &copy; 2025</p>
+
+        <p class="flex items-center gap-1">
+          Made with
+          <svg
+            class="size-4 fill-red-600"
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 24 24"
+          >
+            <path
+              d="M12 4.248c-3.148-5.402-12-3.825-12 2.944 0 4.661 5.571 9.427 12 15.808 6.43-6.381 12-11.147 12-15.808 0-6.792-8.875-8.306-12-2.944z"
+            />
+          </svg>
+          and
+          <svg
+            class="size-4 fill-blue-500 -translate-y-0.5"
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 24 24"
+          >
+            <path
+              d="M13 24h-7c-2.564-3.483-5-9.782-5-16h17c0 6.167-2.5 12.625-5 16zm6.088-14c-.051.688-.115 1.356-.192 2h1.707c-.321 1.635-1.463 3.331-2.756 4.677-.358 1.283-.772 2.439-1.153 3.229 3.153-1.453 5.987-6.389 6.306-9.906h-3.912zm-8.49-3.001c1.52-.352 2.555-1.276 2.466-2.399-.117-1.485-3.134-2.718-2.32-4.6-4.735 3.817 1.764 3.902-.146 6.999zm-3.207.001c1.523-.29 1.832-1.067 1.832-1.533 0-1.045-2.279-2.002-1.528-3.795-3.648 3.094.995 3.088-.304 5.328z"
+            />
+          </svg>
+          by
+          <a target="_blank" href="https://github.com/aliadelharrat">Adel</a>
+        </p>
+      </div>
+    </div>
+  </body>
+</html>
+{{ end }}
