@@ -3,8 +3,8 @@ package controllers
 import (
 	"net/http"
 
-	"github.com/aliadelharrat/goshort/models"
-	tpl "github.com/aliadelharrat/goshort/templates"
+	"github.com/aliadelharrat/go-url-shortener/models"
+	tpl "github.com/aliadelharrat/go-url-shortener/templates"
 	"github.com/go-chi/chi/v5"
 )
 

@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/aliadelharrat/goshort/models"
-	tpl "github.com/aliadelharrat/goshort/templates"
+	"github.com/aliadelharrat/go-url-shortener/models"
+	tpl "github.com/aliadelharrat/go-url-shortener/templates"
 )
 
 func (ac *AppController) URLsHandler(w http.ResponseWriter, r *http.Request) {

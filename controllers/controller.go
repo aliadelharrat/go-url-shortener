@@ -4,7 +4,7 @@ import (
 	"html/template"
 	"net/http"
 
-	tpl "github.com/aliadelharrat/goshort/templates"
+	tpl "github.com/aliadelharrat/go-url-shortener/templates"
 	"gorm.io/gorm"
 )
 

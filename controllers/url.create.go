@@ -5,7 +5,7 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/aliadelharrat/goshort/models"
+	"github.com/aliadelharrat/go-url-shortener/models"
 	"github.com/teris-io/shortid"
 )
 

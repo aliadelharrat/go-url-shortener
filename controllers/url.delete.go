@@ -3,7 +3,7 @@ package controllers
 import (
 	"net/http"
 
-	"github.com/aliadelharrat/goshort/models"
+	"github.com/aliadelharrat/go-url-shortener/models"
 )
 
 func (ac *AppController) DeleteHandler(w http.ResponseWriter, r *http.Request) {

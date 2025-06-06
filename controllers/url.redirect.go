@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/aliadelharrat/goshort/models"
+	"github.com/aliadelharrat/go-url-shortener/models"
 	"github.com/go-chi/chi/v5"
 )
 
