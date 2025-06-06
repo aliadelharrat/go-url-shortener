@@ -1,4 +1,4 @@
-module github.com/aliadelharrat/goshort
+module github.com/aliadelharrat/go-url-shortener
 
 go 1.24.3
 
